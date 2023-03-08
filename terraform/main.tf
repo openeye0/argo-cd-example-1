@@ -83,6 +83,30 @@ resource "kubectl_manifest" "argocd" {
     override_namespace = "argocd"
 }
 
+data "kubectl_file_documents" "argonamespace" {
+    content = file("../manifests/argo/namespace.yaml")
+} 
+
+data "kubectl_file_documents" "argoflow" {
+    content = file("../manifests/argo/install.yaml")
+}
+
+resource "kubectl_manifest" "argonamespace" {
+    count     = length(data.kubectl_file_documents.argonamespace.documents)
+    yaml_body = element(data.kubectl_file_documents.argonamespace.documents, count.index)
+    override_namespace = "argo"
+}
+
+resource "kubectl_manifest" "argoflow" {
+    depends_on = [
+      kubectl_manifest.argonamespace,
+    ]
+    count     = length(data.kubectl_file_documents.argoflow.documents)
+    yaml_body = element(data.kubectl_file_documents.argoflow.documents, count.index)
+    override_namespace = "argo"
+}
+
+
 data "kubectl_file_documents" "my-nginx-app" {
     content = file("../manifests/argocd/my-nginx-app.yaml")
 }
